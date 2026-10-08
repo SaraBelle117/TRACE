@@ -1,10 +1,10 @@
 # thrashing_to_csv.py
 
-Converts the features CSV from `features_to_csv.py` into a wide thrashing table (Dr. Jang's output 2): one column per worm, one row per video frame.
+Converts the features CSV from `features_to_csv.py` into a per-worm thrashing table (Dr. Jang's output 2): one column per worm, one row per video frame.
 
 ## Input / Output
 - **In:** CSV produced by `features_to_csv.py`
-- **Out:** wide CSV with columns `timestamp`, `time_s`, `worm_<id>`, ...
+- **Out:** per-worm CSV with columns `timestamp`, `time_s`, `worm_<id>`, ...
 
 | Column | Meaning |
 |---|---|
@@ -16,7 +16,7 @@ Converts the features CSV from `features_to_csv.py` into a wide thrashing table 
 Run `features_to_csv.py` first, then (from `src/trace/io`):
 
 ```
-python thrashing_to_csv.py ../../../data/out.csv ../../../data/thrashing_wide.csv
+python thrashing_to_csv.py ../../../data/out.csv ../../../data/thrashing_by_worm.csv
 ```
 
 Options:
