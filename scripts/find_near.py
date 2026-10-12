@@ -1,7 +1,7 @@
 import h5py
 import numpy as np
 
-FILE = "data/cf_2026-09-22_FMO4KO_~D1-IMAGE-15_38_49_221_featuresN.hdf5"
+FILE = "data/R3-cf_2026-09-22_FMO4KO_~D1-IMAGE-15_38_49_221_featuresN.hdf5"
 X, Y, RADIUS = 655, 645, 40
 
 with h5py.File(FILE, "r") as f:
