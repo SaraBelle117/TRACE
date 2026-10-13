@@ -1,7 +1,7 @@
 import csv, collections, statistics
 
 tracks = collections.defaultdict(list)
-for r in csv.DictReader(open("data/out_0918.csv")):
+for r in csv.DictReader(open("data/out_c02.csv")):
     if r["length"]:
         tracks[r["worm_index"]].append(
             (float(r["length"]), float(r["coord_x_body"]), float(r["coord_y_body"]))
