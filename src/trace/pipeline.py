@@ -543,6 +543,10 @@ def analyze_frame(mask: np.ndarray, timestamp: float) -> Tuple[np.ndarray, int, 
             "curvature_tail" : component_skeletal_metrics["curvature"]["tail"],
             "coord_x_body" : centroids[i][0],
             "coord_y_body" : centroids[i][1],
+            "head_x" : component_skeletal_metrics["head_point"][0] + x0,   # crop -> frame coords
+            "head_y" : component_skeletal_metrics["head_point"][1] + y0,
+            "tail_x" : component_skeletal_metrics["tail_point"][0] + x0,
+            "tail_y" : component_skeletal_metrics["tail_point"][1] + y0,
         })
 
         bounding_boxes.append({
@@ -753,6 +757,55 @@ class WormTracker:
         return dets
 
 
+# %% Tracking: orient_tracks
+# CLAUDE-GENERATED: Trying to fix the head/tail swapping issue (w/ minor fixes from Sara)
+def flip_orientation(det: Dict) -> None:
+    """Swap head and tail of one detection, in place.
+
+    Reading the centerline from the other end swaps the head/tail samples
+    (taken at 10% / 90%, which mirror each other) and flips the sign of
+    signed curvature. Widths are unsigned, so they are only swapped.
+    """
+    det["head_x"], det["tail_x"] = det["tail_x"], det["head_x"]
+    det["head_y"], det["tail_y"] = det["tail_y"], det["head_y"]
+    det["width_head_base"], det["width_tail_base"] = det["width_tail_base"], det["width_head_base"]
+    det["curvature_head"], det["curvature_tail"] = -det["curvature_tail"], -det["curvature_head"]
+    det["curvature_midbody"] = -det["curvature_midbody"]
+
+
+def orient_tracks(detections: List[Dict]) -> None:
+    """Make head/tail orientation consistent within each track, in place.
+
+    skeletal_analysis guesses the head per frame ("wider end"), and near-ties
+    make that guess flip between frames, which flips the curvature sign.
+    """
+    # Group detections by track (merged blobs have no track_id and are skipped)
+    tracks = {}
+    for det in detections:
+        if det["track_id"] is not None:
+            tracks.setdefault(det["track_id"], []).append(det)
+
+    for dets in tracks.values():
+        dets.sort(key=lambda d: d["timestamp"])
+
+        # Pass 1: keep the head on the end nearest the previous frame's head.
+        # prev is already corrected, so the orientation carries through the track.
+        for prev, det in zip(dets, dets[1:]):
+            same = np.hypot(det["head_x"] - prev["head_x"], det["head_y"] - prev["head_y"]) + \
+                   np.hypot(det["tail_x"] - prev["tail_x"], det["tail_y"] - prev["tail_y"])
+            swapped = np.hypot(det["head_x"] - prev["tail_x"], det["head_y"] - prev["tail_y"]) + \
+                      np.hypot(det["tail_x"] - prev["head_x"], det["tail_y"] - prev["head_y"])
+            if swapped < same:
+                flip_orientation(det)
+
+        # Pass 2: pick which end is the head for the whole track by majority vote
+        # of "wider end = head", instead of trusting the first frame's guess
+        head_wider = sum(d["width_head_base"] > d["width_tail_base"] for d in dets)
+        if head_wider < len(dets) / 2:
+            for det in dets:
+                flip_orientation(det)
+
+
 # %% Outputs: make_track_csv
 def make_track_csv(input_csv, column, output_csv=None):
     """
@@ -856,6 +909,7 @@ class TracePipeline:
         tracker = WormTracker()
         for frame_dat in self.frame_data:
             self.tracking_data.extend(tracker.step(frame_dat, self.true_worm_count))
+        orient_tracks(self.tracking_data)
         print("Worms Identified.")
 
     def save_outputs(self):
