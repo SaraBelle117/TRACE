@@ -9,6 +9,7 @@ Usage:
 
 # %% Imports
 import os
+import time
 from typing import Dict, List, Tuple
 import av
 import cv2
@@ -504,6 +505,7 @@ def skeletal_analysis(
 # %% Single Frame Analysis: analyze_frame
 def analyze_frame(mask: np.ndarray, timestamp: float) -> Tuple[np.ndarray, int, List[Dict]]:
     num_components, labels, stats, centroids = cv2.connectedComponentsWithStats(mask, connectivity=8)
+    num_components, labels, stats, centroids = cv2.connectedComponentsWithStats(mask, connectivity=8)
 
     pad = 2 # background border (px) kept around each blob crop
     frame_h, frame_w = mask.shape
@@ -983,14 +985,14 @@ class TracePipeline:
             try:
                 # Get the next frame from the video
                 frame = self.video_loader.get_next_frame()
-
-                print(f"\tAnalyzing Frame: {self.video_loader.get_frame_ind()-1} @ {self.video_loader.get_last_frame_timestamp()}")
+                idx, ts = self.video_loader.get_frame_ind()-1, self.video_loader.get_last_frame_timestamp()
 
                 # Preprocess the frame
                 preprocessed_frame = preprocess_frame(frame, self.background)
 
                 # Analyze a single frame
                 worm_dat, bounding_boxes = analyze_frame(preprocessed_frame, self.video_loader.get_last_frame_timestamp())
+                print(f"\t[Analyze] Frame: {idx} @ {ts:.2f}s | {len(worm_dat)} blobs | {time.strftime('%H:%M:%S')}")
                 self._write_mask(preprocessed_frame)
                 self.frame_data.append(worm_dat)
                 self.bounding_boxes.append(bounding_boxes)
@@ -1005,7 +1007,8 @@ class TracePipeline:
     def identify_worms(self):
         print(f"Identifying worms...")
         tracker = WormTracker()
-        for frame_dat in self.frame_data:
+        for i, frame_dat in enumerate(self.frame_data):
+            print(f"\t[Track] Frame: {i} | {time.strftime('%H:%M:%S')}") 
             self.tracking_data.extend(tracker.step(frame_dat, self.true_worm_count))
         orient_tracks(self.tracking_data)
         print("Worms Identified.")
@@ -1015,6 +1018,7 @@ class TracePipeline:
         print(f"Creating output video...")
         mask_count = 0
         for i, mask in enumerate(self._read_masks()):
+            print(f"\t[Video] Frame: {i} | {time.strftime('%H:%M:%S')}") 
             frame = cv2.cvtColor(mask, cv2.COLOR_GRAY2RGB)
 
             for j in range(len(self.frame_data[i])):
