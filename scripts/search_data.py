@@ -1,7 +1,7 @@
 from pathlib import Path
 import os
 
-VIDEO_DATA_BASE_DIR_STR = "../data/Worm_Movies_Tierpsy_Jang Lab"
+VIDEO_DATA_BASE_DIR_STR = "data/Worm_Movies_Tierpsy_Jang Lab"
 VIDEO_DATA_BASE_DIR = Path(VIDEO_DATA_BASE_DIR_STR)
 video_directories = [x for x in VIDEO_DATA_BASE_DIR.iterdir() if x.is_dir()]
 
