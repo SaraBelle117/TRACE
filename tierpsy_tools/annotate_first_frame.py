@@ -208,10 +208,9 @@ def fetch_worm_data(skeletons_path, frame_index):
         cy = float(blob["coord_y"])
         length = float(blob["box_length"])
         width = float(blob["box_width"])
-        angle = float(blob["box_orientation"])
+        angle = np.deg2rad(float(blob["box_orientation"])) 
 
         # Convert the rotated rectangle to an axis-aligned box.
-        # This assumes angle is expressed in radians.
         cos_a = abs(np.cos(angle))
         sin_a = abs(np.sin(angle))
 
