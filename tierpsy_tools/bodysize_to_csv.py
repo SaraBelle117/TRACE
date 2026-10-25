@@ -18,10 +18,9 @@ def parse_args():
     p.add_argument("input", type=Path, help="CSV from features_to_csv.py")
     p.add_argument("output", type=Path, help="wide body size CSV to write")
     p.add_argument("--measure", choices=BODY_SIZE_COLUMNS, default="area",
-                   help="body size measure (default: area)")
+                   help="body size measure: area (mm^2) or length (um) (default: area)")
     p.add_argument("--fps", type=float, default=15.0, help="video frame rate (default: 15)")
     return p.parse_args()
-
 
 def main():
     args = parse_args()
