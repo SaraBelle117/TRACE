@@ -33,6 +33,8 @@ COLUMNS = [
     "coord_y_body"
 ]
 
+WELL_DIAMETER_UM = 15600  # inner well diameter (15.6 mm, dark edge to dark edge), from the client lab
+
 
 def read_timeseries(h5_path: Path) -> pd.DataFrame:
     """Load timeseries_data from a _featuresN.hdf5 file."""
@@ -46,6 +48,18 @@ def read_timeseries(h5_path: Path) -> pd.DataFrame:
 def select_columns(df: pd.DataFrame) -> pd.DataFrame:
     """Keep only the columns in COLUMNS."""
     return df[COLUMNS]
+
+
+def convert_units(df: pd.DataFrame, well_px: float, fps: float) -> pd.DataFrame:
+    """Tierpsy output is in pixels and frames (microns_per_pixel and expected_fps unset).
+    Convert to the client's units: length um, area mm^2, speed mm/s. Other columns unchanged."""
+    um_per_px = WELL_DIAMETER_UM / well_px
+    df = df.copy()
+    df["length"] = df["length"] * um_per_px                        # px -> um
+    df["area"] = df["area"] * um_per_px**2 * 1e-6                  # px^2 -> mm^2
+    for col in ("speed", "speed_midbody"):
+        df[col] = df[col] * um_per_px * fps * 1e-3                 # px/frame -> mm/s
+    return df
 
 
 def write_csv(df: pd.DataFrame, out_path: Path) -> None:
@@ -69,6 +83,20 @@ def parse_args() -> argparse.Namespace:
         help="Where to save the output CSV file",
     )
 
+    parser.add_argument(
+        "--well-px",
+        type=float,
+        default=1032.0,
+        help="Well inner diameter in pixels (default: 1032, from the 9/22 recording)",
+    )
+
+    parser.add_argument(
+        "--fps",
+        type=float,
+        default=15.0,
+        help="Video frame rate (default: 15)",
+    )
+
     return parser.parse_args()
 
 
@@ -77,6 +105,7 @@ def main() -> None:
 
     df = read_timeseries(args.input)
     df = select_columns(df)
+    df = convert_units(df, args.well_px, args.fps)
     write_csv(df, args.output)
 
     print(f"Wrote {len(df)} rows x {len(df.columns)} columns to {args.output}")
