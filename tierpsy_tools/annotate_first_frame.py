@@ -26,6 +26,7 @@ def get_all_output_paths(dir_path):
     return files_by_suffix
 
 
+
 def estimate_worm_count(hdf5_path, window_size=100):
     """
     Estimate the number of worms from Tierpsy tracking data.
