@@ -6,7 +6,7 @@ import cv2
 import h5py
 import numpy as np
 
-from search_data import get_all_output_paths
+from search_data_directory import get_all_output_paths
 
 
 def estimate_worm_count(hdf5_path, window_size=100):
