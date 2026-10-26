@@ -1,16 +1,26 @@
 import bodysize_to_csv
 import features_to_csv
 import thrashing_to_csv
-import annotate_frame
-import search_data_directory
+import annotate_first_frame
 import argparse
 from pathlib import Path
 
 import pandas as pd
 import cv2
 
+# ----------------------------------------------------------------- #
+
+# vv DEFINE INPUT AND OUTPUT PATHS HERE vv
+
+data_path = "../data/box_folder/2026-10-13_PolarizerA"
+DEFAULT_OUTPUT_DIR = "output"
+
+# -------------------------------------- #
+
 THRASH_FREQ_SLIDING_WINDOW_IN_S = 10
-DEFAULT_OUTPUT = "../output"
+USE_CMD_ARGS = False
+
+# ----------------------------------------------------------------- #
 
 def get_video_fps(video_path: str) -> float:
     """
@@ -38,14 +48,17 @@ def write_csv(df: pd.DataFrame, out_path: Path) -> None:
     df = df.sort_values(["worm_index", "timestamp"])
     df.to_csv(out_path, index=False)
 
-
-parser = argparse.ArgumentParser(prog='Tierpsy Output Analysis Script', usage= "python main.py data_directory [-o/--out_dir out_dir]", description='Produce requested outputs from a directory containing both the original video and the tierpsy hdf5 outputs.', epilog='See the read me for usage details.')
-parser.add_argument('data_dir')
-parser.add_argument('-o', '--out_dir')      # option that takes a value
-
-args = parser.parse_args()
-data_dir = args.data_dir
-out_dir = args.out_dir if args.out_dir is not None else DEFAULT_OUTPUT
+if USE_CMD_ARGS:
+    parser = argparse.ArgumentParser(prog='Tierpsy Output Analysis Script', usage= "python main.py data_directory [-o/--out_dir out_dir]", description='Produce requested outputs from a directory containing both the original video and the tierpsy hdf5 outputs.', epilog='See the read me for usage details.')
+    parser.add_argument('data_dir')
+    parser.add_argument('-o', '--out_dir')      # option that takes a value
+    
+    args = parser.parse_args()
+    data_dir = args.data_dir
+    out_dir = args.out_dir if args.out_dir is not None else DEFAULT_OUTPUT_DIR
+else:
+    data_dir = data_path
+    out_dir = DEFAULT_OUTPUT_DIR
 
 data_path = Path(data_dir)
 out_path = Path(out_dir)
@@ -54,9 +67,8 @@ if not data_path.is_dir():
     print("The provided data directory does not exist.")
     exit()
 # Get the relevant output paths
-all_outputs = search_data_directory.get_all_output_paths(data_path)
-print(all_outputs)
-
+all_outputs = annotate_first_frame.get_all_output_paths(data_path)
+out_path.mkdir(parents=True, exist_ok=True)
 
 
 vid_fps = get_video_fps(all_outputs["video"])
@@ -77,7 +89,7 @@ write_csv(df, out_path / "body_area.csv")
 write_csv(df1, out_path / "body_length.csv")
 write_csv(df2, out_path / "thrashing_frequency.csv")
 
-annotate_frame.produce_output(data_path, out_path)
+annotate_first_frame.produce_output(data_path, out_path)
 
 
 

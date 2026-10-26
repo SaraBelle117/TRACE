@@ -6,9 +6,6 @@ import cv2
 import h5py
 import numpy as np
 
-<<<<<<<< HEAD:tierpsy_output_analysis/annotate_frame.py
-from search_data_directory import get_all_output_paths
-========
 def get_video_output_path(dir_path):
     extensions = ['.mpeg4', '.avi']
     
@@ -27,7 +24,7 @@ def get_all_output_paths(dir_path):
 
     files_by_suffix["video"] = get_video_output_path(dir_path)
     return files_by_suffix
->>>>>>>> bcd1f15532b7d95326c1575cf17d994af3156855:tierpsy_tools/annotate_first_frame.py
+
 
 
 def estimate_worm_count(hdf5_path, window_size=100):
