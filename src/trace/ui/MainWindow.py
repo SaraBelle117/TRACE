@@ -1,23 +1,22 @@
 from PySide6.QtWidgets import QMainWindow, QStackedWidget
 try:
     from ui.views.NavView import NavView
+    from ui.views.BatchView import BatchView
     from ui.views.Placeholders import (
-        BatchViewPlaceholder,
         ReviewViewPlaceholder,
         SettingsViewPlaceholder,
         DocumentationViewPlaceholder
     )
 except ImportError:
     from .views.NavView import NavView
+    from .views.BatchView import BatchView
     from .views.Placeholders import (
-        BatchViewPlaceholder,
         ReviewViewPlaceholder,
         SettingsViewPlaceholder,
         DocumentationViewPlaceholder
     )
 
 class MainWindow(QMainWindow):
-    # Page Indices
     PAGE_NAV = 0
     PAGE_BATCH = 1
     PAGE_REVIEW = 2
@@ -35,7 +34,7 @@ class MainWindow(QMainWindow):
 
         # Instantiate Views
         self.nav_view = NavView()
-        self.batch_view = BatchViewPlaceholder()
+        self.batch_view = BatchView()
         self.review_view = ReviewViewPlaceholder()
         self.settings_view = SettingsViewPlaceholder()
         self.doc_view = DocumentationViewPlaceholder()
@@ -61,6 +60,8 @@ class MainWindow(QMainWindow):
         self.settings_view.home_requested.connect(lambda: self.navigate_to("nav"))
         self.doc_view.home_requested.connect(lambda: self.navigate_to("nav"))
 
+        self.batch_view.start_batch_requested.connect(self._handle_start_batch)
+
     def navigate_to(self, page_name: str):
         """Switches stacked widget page based on route string."""
         mapping = {
@@ -77,3 +78,10 @@ class MainWindow(QMainWindow):
         print(f"Opening recent project: {project_info}")
         # Automatically transition to review view when a recent project is opened
         self.navigate_to("review")
+
+    def _handle_start_batch(self, files: list, options: dict):
+        QMessageBox.information(
+            self, 
+            "Batch Job Started", 
+            f"Processing {len(files)} files.\nOutput Target: {options['output_dir']}"
+        )
