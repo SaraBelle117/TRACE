@@ -1,7 +1,13 @@
-.venv/*
-.venv
+*/.venv/*
+*/.venv
+
 data/*
+
+*/__pycache__/*
 */__pycache__
-output/*
+
+*/output/*
+*/output
+
 .DS_Store
-tierpsy_tools/.spyproject/config
+
