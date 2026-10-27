@@ -5,6 +5,15 @@ Detects, skeletonizes and tracks worms in a video and writes per-worm CSV output
 
 Usage:
     python src/trace/pipeline.py data/clip10s_2026-09-22.avi output
+
+TODO:
+
+0. Comprehensive Timing and Logging
+1. refactor preprocessing; use connected components in frame analysis insteal of recalling
+2. fix csv outputs: ordering, units
+3. skeletonization bug fix?!?
+4. automatic plotting (including timing data)
+
 """
 
 # %% Imports
@@ -28,12 +37,29 @@ from scipy.sparse import coo_matrix
 from scipy.sparse.csgraph import dijkstra
 from skimage.morphology import skeletonize
 from scipy.optimize import linear_sum_assignment
+import logging
 
 # OS-level file locking: each module exists only on its own OS
 if os.name == "nt":
     import msvcrt # Windows
 else:
     import fcntl # Mac/Linux
+
+
+# # 1. Create a dedicated logger instance
+# logger = logging.getLogger("T.R.A.C.E. Pipeline")
+# logger.setLevel(logging.DEBUG)
+
+# # 2. Instantiate the FileHandler (opens the file and keeps it open)
+# file_handler = logging.FileHandler("../output/trace.log", mode="w", encoding="utf-8")
+# file_handler.setLevel(logging.DEBUG)
+
+# # 3. Define and apply format
+# formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# file_handler.setFormatter(formatter)
+
+# # 4. Attach handler to the logger
+# logger.addHandler(file_handler)
 
 
 # %% Video Handling: VideoLoader
