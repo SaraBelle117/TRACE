@@ -3,3 +3,4 @@ numpy
 tables
 h5py
 opencv-python
+spyder
