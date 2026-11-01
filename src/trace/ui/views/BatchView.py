@@ -11,8 +11,6 @@ from PySide6.QtWidgets import (
     QListWidgetItem,
     QFileDialog,
     QGroupBox,
-    QRadioButton,
-    QFrame,
     QMessageBox
 )
 from ui.dialogs.configure_ai import ConfigureAIDialog
@@ -55,7 +53,7 @@ class BatchView(QWidget):
         # ---------------------------------------------------------------------
         dir_layout = QHBoxLayout()
 
-        self.txt_dir_path = QLineEdit("/home/user/videos/worms/video_8758")
+        self.txt_dir_path = QLineEdit()
         btn_select_folder = QPushButton("Select Folder")
         btn_select_folder.clicked.connect(self._select_folder)
 
@@ -80,9 +78,6 @@ class BatchView(QWidget):
         self.file_list_widget.setStyleSheet("font-size: 13px;")
         layout.addWidget(self.file_list_widget, stretch=1)
 
-        # Populate initial dummy files matching wireframe
-        self._populate_dummy_files()
-
         # ---------------------------------------------------------------------
         # Bottom Controls Split Area
         # ---------------------------------------------------------------------
@@ -104,26 +99,12 @@ class BatchView(QWidget):
 
         out_path_layout = QHBoxLayout()
         out_path_layout.addWidget(QLabel("Output Folder:"))
-        self.txt_output_dir = QLineEdit("/home/user/output_folder")
+        self.txt_output_dir = QLineEdit()
         btn_browse_output = QPushButton("Browse...")
         btn_browse_output.clicked.connect(self._select_output_folder)
         out_path_layout.addWidget(self.txt_output_dir)
         out_path_layout.addWidget(btn_browse_output)
         output_layout.addLayout(out_path_layout)
-
-        # Asset Handling Options (Video.avi strategy)
-        video_handling_label = QLabel("Video File Handling:")
-        video_handling_label.setStyleSheet("font-weight: bold; margin-top: 5px;")
-        output_layout.addWidget(video_handling_label)
-
-        self.rad_pointer = QRadioButton("Pointer to raw video (Fastest, saves storage space)")
-        self.rad_copy = QRadioButton("Copy raw video into output folder")
-        self.rad_move = QRadioButton("Move original video into output folder")
-        self.rad_pointer.setChecked(True)
-
-        output_layout.addWidget(self.rad_pointer)
-        output_layout.addWidget(self.rad_copy)
-        output_layout.addWidget(self.rad_move)
 
         bottom_layout.addLayout(left_col, stretch=1)
         bottom_layout.addWidget(output_box, stretch=2)
@@ -144,23 +125,6 @@ class BatchView(QWidget):
 
         run_layout.addWidget(self.btn_run)
         layout.addLayout(run_layout)
-
-    def _populate_dummy_files(self):
-        """Populate mock video files for visual testing."""
-        self.file_list_widget.clear()
-        mock_files = [
-            "video_8758_plate_A.avi",
-            "video_8758_plate_B.avi",
-            "video_8759_control_1.mp4",
-            "video_8760_hypertonic_50mM.avi",
-            "video_8761_hypertonic_100mM.avi"
-        ]
-        for idx, filename in enumerate(mock_files):
-            item = QListWidgetItem(filename)
-            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
-            # Default check first three items
-            item.setCheckState(Qt.CheckState.Checked if idx < 3 else Qt.CheckState.Unchecked)
-            self.file_list_widget.addItem(item)
 
     def get_selected_files(self) -> list[str]:
         """Returns list of checked file paths."""
@@ -220,8 +184,10 @@ class BatchView(QWidget):
             QMessageBox.warning(self, "No Files Selected", "Please select at least one video to process.")
             return
 
-        opts = {
-            "output_dir": self.txt_output_dir.text(),
-            "video_mode": "pointer" if self.rad_pointer.isChecked() else ("copy" if self.rad_copy.isChecked() else "move")
-        }
+        output_dir = self.txt_output_dir.text().strip()
+        if not output_dir:
+            QMessageBox.warning(self, "Output Folder Required", "Please select an output folder.")
+            return
+
+        opts = {"output_dir": output_dir}
         self.start_batch_requested.emit(selected, opts)
