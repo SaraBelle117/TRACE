@@ -24,7 +24,6 @@ import av
 import cv2
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 import argparse
 import signal
 import threading
@@ -190,7 +189,7 @@ def find_background(video, n, k):
     # Stack frames and calculate median for every pixel
     frames = np.stack(frames, axis=0)
 
-    background = np.median(np.stack(frames, axis=0), axis=0).astype(np.uint8)
+    background = np.median(frames, axis=0).astype(np.uint8)
     video.reset()
     return background
 
@@ -214,10 +213,7 @@ def preprocess_frame(
         cv2.THRESH_BINARY + cv2.THRESH_OTSU,
     )
 
-    threshold = max(
-        0,
-        min(otsu_threshold, threshold_cap) - threshold_offset,
-    )
+    threshold = threshold_cap - threshold_offset
 
     _, mask = cv2.threshold(
         dark_difference,
@@ -529,8 +525,7 @@ def skeletal_analysis(
 
 
 # %% Single Frame Analysis: analyze_frame
-def analyze_frame(mask: np.ndarray, timestamp: float) -> Tuple[np.ndarray, int, List[Dict]]:
-    num_components, labels, stats, centroids = cv2.connectedComponentsWithStats(mask, connectivity=8)
+def analyze_frame(mask: np.ndarray, timestamp: float) -> Tuple[List[Dict], List[Dict]]:
     num_components, labels, stats, centroids = cv2.connectedComponentsWithStats(mask, connectivity=8)
 
     pad = 2 # background border (px) kept around each blob crop
@@ -563,14 +558,15 @@ def analyze_frame(mask: np.ndarray, timestamp: float) -> Tuple[np.ndarray, int, 
         largest_contour = max(contours, key=cv2.contourArea)
         hull = cv2.convexHull(largest_contour)
         perimeter = cv2.arcLength(largest_contour, True)
+        hull_area = cv2.contourArea(hull)
 
         components.append({
             "timestamp": timestamp,
             "length": component_skeletal_metrics["length"],
             "area": stats[i, cv2.CC_STAT_AREA],
             "perimeter": perimeter,
-            "solidity" : stats[i, cv2.CC_STAT_AREA] / cv2.contourArea(hull),
-            "compactness" : (4 * np.pi * stats[i, cv2.CC_STAT_AREA]) / (perimeter ** 2),
+            "solidity" : stats[i, cv2.CC_STAT_AREA] / hull_area if hull_area > 0 else np.nan,
+            "compactness" : (4 * np.pi * stats[i, cv2.CC_STAT_AREA]) / (perimeter ** 2) if perimeter > 0 else np.nan,
             "width_head_base" : component_skeletal_metrics["width"]["head"],
             "width_midbody" : component_skeletal_metrics["width"]["midbody"],
             "width_tail_base" : component_skeletal_metrics["width"]["tail"],
@@ -601,20 +597,32 @@ def analyze_frame(mask: np.ndarray, timestamp: float) -> Tuple[np.ndarray, int, 
 
 # %% Inter-frame Analysis: delta_calculation
 # FOR NOW: I need to calculate the delta values for: displacement (which gives speed) and midbody curvature
-def delta_calculation(worm_count: int, worm_data: Tuple[List[Dict[str, any]]], frame_timestep: int):
-    for i in range(0, worm_count):
-        current_worm = worm_data[i]
+def delta_calculation(detections: List[Dict]) -> None:
+    """Fill speed (px/s) and d_curvature_midbody on each row, in place.
+    
+    Rows are compared within one track only. Run after orient_tracks, so the 
+    curvature sign is consistent along the track.
+    """
+    # Group detections by track (merged blobs have no track_id and are skipped)
+    tracks = {}
+    for det in detections:
+        if det["track_id"] is not None:
+            tracks.setdefault(det["track_id"], []).append(det)
+
+    for dets in tracks.values():
+        dets.sort(key=lambda d: d["timestamp"])
 
         # Skip delta calculations for the first row: they will be zero by default, since there is no previous frame to compare to.
-        for j in range(1, len(current_worm)):
-            current_worm_frame_data = current_worm[j]
-            previous_worm_frame_data = current_worm[j-1]
+        for prev, det in zip(dets, dets[1:]):
+            dt = det["timestamp"] - prev["timestamp"] # seconds; more than one frame if the track coasted through a merge
+            if dt <= 0:
+                continue
 
             # Calculate delta values
-            dx = current_worm_frame_data["midpoint_x"] - previous_worm_frame_data["midpoint_x"]
-            dy = current_worm_frame_data["midpoint_y"] - previous_worm_frame_data["midpoint_y"]
-            current_worm["speed"] = np.sqrt(dx**2 + dy**2) / frame_timestep
-            current_worm["d_midbody_curvature"] = current_worm_frame_data["midbody_curvature"] - previous_worm_frame_data["midbody_curvature"]
+            dx = det["coord_x_body"] - prev["coord_x_body"]
+            dy = det["coord_y_body"] - prev["coord_y_body"]
+            det["speed"] =  np.hypot(dx, dy) / dt # px/s
+            det["d_curvature_midbody"] = (det["curvature_midbody"] - prev["curvature_midbody"]) / dt # 1/px per second
 
 
 # %% Inter-frame Analysis: stubs (TODO)
@@ -1037,6 +1045,7 @@ class TracePipeline:
             print(f"\t[Track] Frame: {i} | {time.strftime('%H:%M:%S')}") 
             self.tracking_data.extend(tracker.step(frame_dat, self.true_worm_count))
         orient_tracks(self.tracking_data)
+        delta_calculation(self.tracking_data)
         print("Worms Identified.")
 
     def save_outputs(self):
