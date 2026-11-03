@@ -1,8 +1,8 @@
 @echo off
 setlocal
 
-REM NOTE: This assumes that Tierpsy Tools has been installed on the desktop
-call C:\Users\hjanglab\Desktop\tierpsy_tools\.venv\Scripts\activate.bat
+REM NOTE: This assumes that the .venv is in the same directory as this batch script
+call %~dp0\.venv\Scripts\activate.bat
 
 spyder
 
