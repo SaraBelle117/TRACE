@@ -14,7 +14,7 @@ if not exist "%REQ_FILE%" (
 
 REM 2. Create the virtual environment
 echo Creating virtual environment in "%ENV_DIR%"...
-python -m venv "%ENV_DIR%"
+py -3.14 -m venv "%ENV_DIR%"
 if errorlevel 1 exit /b 1
 
 REM 3. Activate the environment
@@ -35,6 +35,6 @@ if errorlevel 1 exit /b 1
 echo.
 echo Setup complete!
 echo To activate the environment manually, run:
-echo call %ENV_DIR%\Scripts\activate.bat
+echo %ENV_DIR%\Scripts\activate.ps1
 
 endlocal
