@@ -1,4 +1,4 @@
-# Tierpsy Tool
+# Tierpsy Tools
 
 We have compiled the requested outputs into a python script which allows you to process a video alongside it's tierpsy tracker output data to generate csvs, and an annotated first frame.
 
@@ -6,14 +6,20 @@ The instructional video, tierpsy_tools_instructions.mov, gives a more in depth p
 
 1. Open a terminal inside of this folder
 2. Run the setup_venv.sh script if you are on mac, or use the setup_venv.bat script if you are on windows.
-3. Copy the command at the end of the scipts output into your terminal and hit enter ('source .venv/bin/activate')
-4. type 'spyder' into your terminal and hit enter.
-5. open main.py
-6. configure the input directory path at the top of the file. The input directory should contain one video, along with all of the hdf5 files produced by tierpsy. They can be organized however you wish within the directory, but they most all live somewhere inside your input directory.
-7. run main.py using the green arrow button
-8. find the outputs from ./output
+3. Copy the command at the end of the scipts output into your terminal and hit enter ('source .venv/bin/activate' on mac, '.venv\Scripts\activate.ps1' on windows)
+4. Type 'spyder' into your terminal and hit enter.
+5. Open main.py
+6. Configure the input directory path at the top of the file. The input directory should contain one video, along with all of the hdf5 files produced by tierpsy. They can be organized however you wish within the directory, but they most all live somewhere inside your input directory.
+   Also set `WELL_PX` at the top of main.py to the well's inner diameter in pixels for this video (see section 4). Default 1032.
+7. Run main.py using the green arrow button
+8. Find the outputs in ./output:
+   - `features.csv`: per-worm, per-frame features, sorted by frame (`timestamp`), then `worm_index`
+   - `body_area.csv`: one row per frame, one column per worm (area, mm²)
+   - `body_length.csv`: one row per frame, one column per worm (length, µm)
+   - `thrashing_frequency.csv`: one row per frame, one column per worm (thrashes per minute)
+   - `raw_mask.png` and `annotated_mask.png`: the selected frame with worm IDs
 
-And that's all you absolutely NEED to do to use our scripts! Please let us know if you have any questions or additional needs related to the tool. 
+These steps are all that is required to run the tool. For questions or additional requirements, please don't hesitate to reach out to us. 
 
 # Additional Scripts
 
@@ -133,6 +139,8 @@ Example with options: `args=r'C:\data\VIDEO_featuresN.hdf5 C:\data\features.csv 
 | `curvature_head`, `curvature_midbody`, `curvature_tail`, `d_curvature_midbody` | Tierpsy units, per pixel (unconverted) |
 | `angular_velocity`, `motion_mode` | Tierpsy units (unconverted) |
 | `coord_x_body`, `coord_y_body` | pixels |
+
+Rows are sorted by `timestamp` (frame number), then `worm_index`, so all worms in a frame are listed together.
 
 ### Script 2 – `thrashing_to_csv.py`
 ```
