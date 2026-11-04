@@ -3,6 +3,7 @@ import features_to_csv
 import thrashing_to_csv
 import annotate_first_frame
 import argparse
+import sys
 from pathlib import Path
 
 import pandas as pd
@@ -19,6 +20,7 @@ DEFAULT_OUTPUT_DIR = "output"
 
 THRASH_FREQ_SLIDING_WINDOW_IN_S = 10
 USE_CMD_ARGS = False
+WELL_PX = 1032.0
 
 # ----------------------------------------------------------------- #
 
@@ -45,7 +47,7 @@ def get_video_fps(video_path: str) -> float:
 
 def write_csv(df: pd.DataFrame, out_path: Path) -> None:
     """Sort and write to CSV."""
-    df = df.sort_values(["worm_index", "timestamp"])
+    df = df.sort_values(["timestamp", "worm_index"])
     df.to_csv(out_path, index=False)
 
 if USE_CMD_ARGS:
@@ -65,7 +67,7 @@ out_path = Path(out_dir)
 # Check if the directory exists
 if not data_path.is_dir():
     print("The provided data directory does not exist.")
-    exit()
+    sys.exit()
 # Get the relevant output paths
 all_outputs = annotate_first_frame.get_all_output_paths(data_path)
 out_path.mkdir(parents=True, exist_ok=True)
@@ -75,22 +77,19 @@ vid_fps = get_video_fps(all_outputs["video"])
 
 df = features_to_csv.read_timeseries(all_outputs["featuresN"])
 df = features_to_csv.select_columns(df)
+df = features_to_csv.convert_units(df, WELL_PX, vid_fps)
 write_csv(df, out_path / "features.csv")
 
 # Use a new copy of the data frame for each modifictation
 df1 = df.copy()
 df2 = df.copy()
 
-bodysize_to_csv.make_wide(df, "area", vid_fps)
-bodysize_to_csv.make_wide(df1, "length", vid_fps)
-thrashing_to_csv.make_wide(df2, vid_fps, THRASH_FREQ_SLIDING_WINDOW_IN_S)
+area_wide = bodysize_to_csv.make_wide(df, "area", vid_fps)
+length_wide = bodysize_to_csv.make_wide(df1, "length", vid_fps)
+thrash_wide = thrashing_to_csv.make_wide(df2, vid_fps, THRASH_FREQ_SLIDING_WINDOW_IN_S)
 
-write_csv(df, out_path / "body_area.csv")
-write_csv(df1, out_path / "body_length.csv")
-write_csv(df2, out_path / "thrashing_frequency.csv")
+area_wide.to_csv(out_path / "body_area.csv", index=False)
+length_wide.to_csv(out_path / "body_length.csv", index=False)
+thrash_wide.to_csv(out_path / "thrashing_frequency.csv", index=False)
 
 annotate_first_frame.produce_output(data_path, out_path)
-
-
-
-
