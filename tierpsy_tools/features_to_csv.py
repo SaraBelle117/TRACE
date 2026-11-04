@@ -64,7 +64,7 @@ def convert_units(df: pd.DataFrame, well_px: float, fps: float) -> pd.DataFrame:
 
 def write_csv(df: pd.DataFrame, out_path: Path) -> None:
     """Sort and write to CSV."""
-    df = df.sort_values(["worm_index", "timestamp"])
+    df = df.sort_values([ "timestamp", "worm_index"])
     df.to_csv(out_path, index=False)
 
 
